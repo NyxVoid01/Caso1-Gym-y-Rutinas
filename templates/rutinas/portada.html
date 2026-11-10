@@ -35,7 +35,7 @@
     {% for rutina in recientes %}
       <div class="col-md-6 col-lg-3 mb-3">
         <div class="card h-100 shadow-sm"><div class="card-body">
-          <h3 class="h6 card-title">{{ rutina.titulo }}</h3>
+          <h3 class="h6 card-title"><a href="{% url 'detalle_rutina' rutina.pk %}">{{ rutina.titulo }}</a></h3>
           <p class="mb-1"><span class="badge bg-secondary">{{ rutina.disciplina|default:"Sin disciplina" }}</span></p>
           <p class="small text-muted mb-0">{{ rutina.get_nivel_display }} · {{ rutina.duracion_minutos }} min · por {{ rutina.entrenador.username }}</p>
         </div></div>

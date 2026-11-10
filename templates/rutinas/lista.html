@@ -1,0 +1,60 @@
+
+{% extends "base.html" %}
+
+{% block title %}Rutinas · Gimnasio del Barrio{% endblock %}
+
+{% block content %}
+  <h1 class="h3 mb-3">Rutinas</h1>
+
+  <form method="get" class="row g-2 mb-4">
+    <div class="col-md-6">
+      <input type="text" name="q" value="{{ q }}" class="form-control"
+             placeholder="Buscar por título o descripción">
+    </div>
+    <div class="col-md-4">
+      <select name="disciplina" class="form-select">
+        <option value="">Todas las disciplinas</option>
+        {% for d in disciplinas %}
+          <option value="{{ d.id }}" {% if disciplina_actual == d.id|stringformat:"s" %}selected{% endif %}>{{ d.nombre }}</option>
+        {% endfor %}
+        <option value="sin" {% if disciplina_actual == "sin" %}selected{% endif %}>Sin disciplina</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-grid">
+      <button class="btn btn-dark">Buscar</button>
+    </div>
+  </form>
+
+  <p class="text-muted small">{{ page_obj.paginator.count }} resultado(s)</p>
+
+  {% for rutina in page_obj %}
+    <div class="card mb-3 shadow-sm"><div class="card-body">
+      <h2 class="h5"><a href="{% url 'detalle_rutina' rutina.pk %}">{{ rutina.titulo }}</a></h2>
+      <p class="mb-2">
+        <span class="badge bg-primary">{{ rutina.disciplina|default:"Sin disciplina" }}</span>
+        {% for e in rutina.equipamiento.all %}
+          <span class="badge bg-light text-dark border">{{ e.nombre }}</span>
+        {% endfor %}
+      </p>
+      <p class="small text-muted mb-0">
+        {{ rutina.get_nivel_display }} · {{ rutina.duracion_minutos }} min · {{ rutina.cupos }} cupos · por {{ rutina.entrenador.username }}
+      </p>
+    </div></div>
+  {% empty %}
+    <div class="alert alert-info">No se encontraron rutinas con esos criterios.</div>
+  {% endfor %}
+
+  {% if page_obj.has_other_pages %}
+    <nav>
+      <ul class="pagination">
+        {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">« Anterior</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Siguiente »</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+{% endblock %}

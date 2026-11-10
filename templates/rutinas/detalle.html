@@ -1,0 +1,30 @@
+
+{% extends "base.html" %}
+
+{% block title %}{{ rutina.titulo }} · Gimnasio del Barrio{% endblock %}
+
+{% block content %}
+  <a href="{% url 'lista_rutinas' %}" class="btn btn-link px-0 mb-2">« Volver a rutinas</a>
+
+  <div class="card shadow-sm"><div class="card-body">
+    <h1 class="h3">{{ rutina.titulo }}</h1>
+    <p class="text-muted">Publicada por <strong>{{ rutina.entrenador.username }}</strong> el {{ rutina.fecha_creacion|date:"d/m/Y" }}</p>
+
+    <p>{{ rutina.descripcion|linebreaksbr }}</p>
+
+    <ul class="list-group list-group-flush mb-3">
+      <li class="list-group-item"><strong>Disciplina:</strong> {{ rutina.disciplina|default:"Sin disciplina" }}</li>
+      <li class="list-group-item"><strong>Nivel:</strong> {{ rutina.get_nivel_display }}</li>
+      <li class="list-group-item"><strong>Duración:</strong> {{ rutina.duracion_minutos }} minutos</li>
+      <li class="list-group-item"><strong>Cupos:</strong> {{ rutina.cupos }} ({{ cupos_disponibles }} disponibles, {{ confirmadas }} confirmados)</li>
+      <li class="list-group-item"><strong>Equipamiento:</strong>
+        {% for e in rutina.equipamiento.all %}
+          <span class="badge bg-light text-dark border">{{ e.nombre }}</span>
+        {% empty %}
+          <span class="text-muted">No requiere</span>
+        {% endfor %}
+      </li>
+    </ul>
+    {# Aquí irán los botones Editar / Eliminar (Hito 3-4) e Inscribirme (Hito 5) #}
+  </div></div>
+{% endblock %}
