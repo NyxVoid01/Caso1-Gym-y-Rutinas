@@ -1,8 +1,13 @@
 
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.messages.views import SuccessMessageMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 
+from .forms import RegistroForm
 from .models import Disciplina, Inscripcion, Rutina
 
 
@@ -73,3 +78,38 @@ def detalle_rutina(request, pk):
         "confirmadas": confirmadas,
         "cupos_disponibles": max(rutina.cupos - confirmadas, 0),
     })
+
+# ---------- Cuentas ----------
+
+def registro(request):
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    if request.method == "POST":                 # se ENVIÓ el formulario
+        form = RegistroForm(request.POST)
+        if form.is_valid():
+            user = form.save()                   # crea el usuario con la clave hasheada
+            login(request, user)                 # y deja la sesión iniciada
+            messages.success(request, f"¡Bienvenido/a, {user.username}! Tu cuenta fue creada.")
+            return redirect("home")
+        messages.error(request, "Revisa los errores del formulario.")
+    else:                                        # se ABRIÓ el formulario (GET)
+        form = RegistroForm()
+
+    return render(request, "registration/registro.html", {"form": form})
+
+
+class IngresoView(SuccessMessageMixin, LoginView):
+    template_name = "registration/login.html"
+    redirect_authenticated_user = True
+    success_message = "Hola %(username)s, ingresaste correctamente."
+
+
+class SalirView(LogoutView):
+    """LogoutView solo acepta POST (Django 5+): un GET responde 405."""
+    next_page = "home"
+
+    def post(self, request, *args, **kwargs):
+        respuesta = super().post(request, *args, **kwargs)
+        messages.info(request, "Cerraste sesión correctamente.")
+        return respuesta
