@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import PerfilForm, RegistroForm, RutinaForm
+from .forms import DisciplinaForm, PerfilForm, RegistroForm, RutinaForm
 from .models import Disciplina, Inscripcion, Rutina
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordChangeView
@@ -169,6 +169,7 @@ def crear_rutina(request):
             rutina = form.save(commit=False)     # 1) objeto en memoria, aún sin guardar
             rutina.entrenador = request.user     # 2) el dueño lo pone el servidor, no el usuario
             rutina.save()                        # 3) ahora sí se guarda en MySQL
+            form.save_m2m()                      # 4) guarda el equipamiento (tabla intermedia)
             messages.success(request, f"Rutina «{rutina.titulo}» publicada.")
             return redirect("detalle_rutina", pk=rutina.pk)
         messages.error(request, "No se pudo publicar la rutina. Revisa los errores.")
@@ -222,3 +223,43 @@ def mis_rutinas(request):
         .order_by("-fecha_creacion", "-id")
     )
     return render(request, "rutinas/mis_rutinas.html", {"rutinas": rutinas})
+
+# ---------- Catálogo: disciplinas ----------
+
+@login_required
+def disciplinas(request):
+    if request.method == "POST":
+        form = DisciplinaForm(request.POST)
+        if form.is_valid():
+            disciplina = form.save()
+            messages.success(request, f"Disciplina «{disciplina.nombre}» creada.")
+            return redirect("disciplinas")
+        messages.error(request, "No se pudo crear la disciplina.")
+    else:
+        form = DisciplinaForm()
+
+    lista = Disciplina.objects.annotate(total_rutinas=Count("rutinas")).order_by("nombre")
+    return render(request, "rutinas/disciplinas.html", {"form": form, "disciplinas": lista})
+
+
+@login_required
+def eliminar_disciplina(request, pk):
+    # El catálogo es compartido: si lo borra cualquiera, afecta rutinas ajenas.
+    if not request.user.is_staff:
+        raise PermissionDenied("Solo el personal del gimnasio puede eliminar disciplinas.")
+
+    disciplina = get_object_or_404(Disciplina, pk=pk)
+    afectadas = disciplina.rutinas.count()
+
+    if request.method == "POST":
+        nombre = disciplina.nombre
+        disciplina.delete()          # on_delete=SET_NULL: las rutinas quedan "sin disciplina"
+        messages.success(
+            request,
+            f"Disciplina «{nombre}» eliminada. {afectadas} rutina(s) quedaron sin disciplina.",
+        )
+        return redirect("disciplinas")
+
+    return render(request, "rutinas/confirmar_eliminar_disciplina.html", {
+        "disciplina": disciplina, "afectadas": afectadas,
+    })

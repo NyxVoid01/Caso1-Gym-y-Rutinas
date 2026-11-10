@@ -9,6 +9,8 @@
       <form method="post" class="form-bonito" novalidate>
         {% csrf_token %}
         {{ form.as_p }}
+        <p class="small">¿No está la disciplina que necesitas?
+          <a href="{% url 'disciplinas' %}" target="_blank">Créala aquí</a> y recarga esta página.</p>
         <button class="btn btn-dark">Guardar</button>
         {% if rutina %}
           <a href="{% url 'detalle_rutina' rutina.pk %}" class="btn btn-link">Cancelar</a>

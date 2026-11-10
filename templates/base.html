@@ -26,6 +26,7 @@
         <li class="nav-item"><a class="nav-link" href="{% url 'lista_rutinas' %}">Rutinas</a></li>
 
         {% if user.is_authenticated %}
+          <li class="nav-item"><a class="nav-link" href="{% url 'disciplinas' %}">Disciplinas</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'mis_rutinas' %}">Mis rutinas</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'cuenta' %}">Mi cuenta</a></li>
           <li class="nav-item"><span class="navbar-text mx-2">Hola, <strong>{{ user.username }}</strong></span></li>

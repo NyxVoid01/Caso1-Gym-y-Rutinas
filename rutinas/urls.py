@@ -17,4 +17,6 @@ urlpatterns = [
     path("cuentas/mi-cuenta/editar/", views.editar_perfil, name="editar_perfil"),
     path("cuentas/mi-cuenta/password/", views.CambiarPasswordView.as_view(), name="cambiar_password"),
     path("mis-rutinas/", views.mis_rutinas, name="mis_rutinas"),
+    path("disciplinas/", views.disciplinas, name="disciplinas"),
+    path("disciplinas/<int:pk>/eliminar/", views.eliminar_disciplina, name="eliminar_disciplina"),
 ]
