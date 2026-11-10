@@ -10,4 +10,7 @@ urlpatterns = [
     path("cuentas/registro/", views.registro, name="registro"),
     path("cuentas/login/", views.IngresoView.as_view(), name="login"),
     path("cuentas/logout/", views.SalirView.as_view(), name="logout"),
+    path("cuentas/mi-cuenta/", views.cuenta, name="cuenta"),
+    path("cuentas/mi-cuenta/editar/", views.editar_perfil, name="editar_perfil"),
+    path("cuentas/mi-cuenta/password/", views.CambiarPasswordView.as_view(), name="cambiar_password"),
 ]

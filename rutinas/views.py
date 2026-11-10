@@ -7,8 +7,11 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import RegistroForm
+from .forms import PerfilForm, RegistroForm
 from .models import Disciplina, Inscripcion, Rutina
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import PasswordChangeView
+from django.urls import reverse_lazy
 
 
 def portada(request):
@@ -113,3 +116,37 @@ class SalirView(LogoutView):
         respuesta = super().post(request, *args, **kwargs)
         messages.info(request, "Cerraste sesión correctamente.")
         return respuesta
+
+# ---------- Mi cuenta ----------
+
+@login_required
+def cuenta(request):
+    contexto = {
+        "total_rutinas": request.user.rutinas.count(),              # related_name de Rutina.entrenador
+        "total_inscripciones": request.user.inscripciones.count(),  # related_name de Inscripcion.socio
+        "pendientes_recibidas": Inscripcion.objects.filter(
+            rutina__entrenador=request.user,
+            estado=Inscripcion.Estado.PENDIENTE,
+        ).count(),
+    }
+    return render(request, "cuentas/cuenta.html", contexto)
+
+
+@login_required
+def editar_perfil(request):
+    if request.method == "POST":
+        form = PerfilForm(request.POST, instance=request.user)   # edita SOLO al usuario actual
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Tus datos fueron actualizados.")
+            return redirect("cuenta")
+        messages.error(request, "No se pudieron guardar los cambios. Revisa el formulario.")
+    else:
+        form = PerfilForm(instance=request.user)                 # precarga los datos actuales
+    return render(request, "cuentas/perfil.html", {"form": form})
+
+
+class CambiarPasswordView(SuccessMessageMixin, PasswordChangeView):
+    template_name = "cuentas/cambiar_password.html"
+    success_url = reverse_lazy("cuenta")
+    success_message = "Tu contraseña fue cambiada correctamente."
