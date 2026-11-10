@@ -1,0 +1,47 @@
+
+{% extends "base.html" %}
+
+{% block title %}Inicio · Gimnasio del Barrio{% endblock %}
+
+{% block content %}
+  <div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+    <h1 class="display-5 fw-bold">Gimnasio del Barrio</h1>
+    <p class="fs-5">Nuestros entrenadores publican sus rutinas aquí y tú te inscribes en las que te sirven. Se acabaron las rutinas perdidas en el chat.</p>
+  </div>
+
+  <div class="row text-center mb-4">
+    <div class="col-md-4 mb-3">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="display-6 fw-bold">{{ total_rutinas }}</div>
+        <div class="text-muted">Rutinas publicadas</div>
+      </div></div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="display-6 fw-bold">{{ total_disciplinas }}</div>
+        <div class="text-muted">Disciplinas</div>
+      </div></div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="display-6 fw-bold">{{ total_confirmadas }}</div>
+        <div class="text-muted">Inscripciones confirmadas</div>
+      </div></div>
+    </div>
+  </div>
+
+  <h2 class="h4 mb-3">Rutinas más recientes</h2>
+  <div class="row">
+    {% for rutina in recientes %}
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="card h-100 shadow-sm"><div class="card-body">
+          <h3 class="h6 card-title">{{ rutina.titulo }}</h3>
+          <p class="mb-1"><span class="badge bg-secondary">{{ rutina.disciplina|default:"Sin disciplina" }}</span></p>
+          <p class="small text-muted mb-0">{{ rutina.get_nivel_display }} · {{ rutina.duracion_minutos }} min · por {{ rutina.entrenador.username }}</p>
+        </div></div>
+      </div>
+    {% empty %}
+      <p class="text-muted">Aún no hay rutinas publicadas.</p>
+    {% endfor %}
+  </div>
+{% endblock %}
