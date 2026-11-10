@@ -1,0 +1,40 @@
+
+{% extends "base.html" %}
+{% block title %}Mis rutinas · Gimnasio del Barrio{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Mis rutinas</h1>
+    <a href="{% url 'crear_rutina' %}" class="btn btn-warning">+ Publicar rutina</a>
+  </div>
+
+  {% if rutinas %}
+    <div class="table-responsive">
+      <table class="table table-striped align-middle bg-white shadow-sm">
+        <thead class="table-dark">
+          <tr>
+            <th>Título</th><th>Disciplina</th><th>Equipamiento</th>
+            <th>Nivel</th><th>Inscritos</th><th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rutinas %}
+            <tr>
+              <td><a href="{% url 'detalle_rutina' r.pk %}">{{ r.titulo }}</a></td>
+              <td>{{ r.disciplina|default:"—" }}</td>
+              <td>{% for e in r.equipamiento.all %}{{ e.nombre }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+              <td>{{ r.get_nivel_display }}</td>
+              <td>{{ r.total_inscritos }}{% if r.pendientes %} <span class="badge bg-warning text-dark">{{ r.pendientes }} pendiente(s)</span>{% endif %}</td>
+              <td class="text-nowrap">
+                <a href="{% url 'editar_rutina' r.pk %}" class="btn btn-sm btn-dark">Editar</a>
+                <a href="{% url 'eliminar_rutina' r.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info">Aún no has publicado rutinas. ¡Publica la primera!</div>
+  {% endif %}
+{% endblock %}

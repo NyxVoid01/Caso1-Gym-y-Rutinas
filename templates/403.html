@@ -1,0 +1,12 @@
+
+{% extends "base.html" %}
+{% block title %}Sin permiso · Gimnasio del Barrio{% endblock %}
+
+{% block content %}
+  <div class="text-center py-5">
+    <h1 class="display-4">🚫 403</h1>
+    <p class="lead">No tienes permiso para realizar esta acción.</p>
+    {% if exception %}<p class="text-muted">{{ exception }}</p>{% endif %}
+    <a href="{% url 'lista_rutinas' %}" class="btn btn-dark">Volver a las rutinas</a>
+  </div>
+{% endblock %}

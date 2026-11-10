@@ -12,6 +12,8 @@ from .models import Disciplina, Inscripcion, Rutina
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordChangeView
 from django.urls import reverse_lazy
+from django.core.exceptions import PermissionDenied
+from django.db.models import Count
 
 
 def portada(request):
@@ -152,6 +154,12 @@ class CambiarPasswordView(SuccessMessageMixin, PasswordChangeView):
     success_message = "Tu contraseña fue cambiada correctamente."
 
 # ---------- CRUD de rutinas ----------
+def obtener_rutina_propia(request, pk):
+    """Devuelve la rutina solo si pertenece al usuario; si no, 403."""
+    rutina = get_object_or_404(Rutina, pk=pk)
+    if rutina.entrenador != request.user:
+        raise PermissionDenied("Solo el entrenador que publicó esta rutina puede modificarla.")
+    return rutina 
 
 @login_required
 def crear_rutina(request):
@@ -171,7 +179,7 @@ def crear_rutina(request):
 
 @login_required
 def editar_rutina(request, pk):
-    rutina = get_object_or_404(Rutina, pk=pk)
+    rutina = obtener_rutina_propia(request, pk)
     # (Hito 4: aquí agregaremos el bloqueo si no eres el dueño)
     if request.method == "POST":
         form = RutinaForm(request.POST, instance=rutina, entrenador=rutina.entrenador)
@@ -188,7 +196,7 @@ def editar_rutina(request, pk):
 
 @login_required
 def eliminar_rutina(request, pk):
-    rutina = get_object_or_404(Rutina, pk=pk)
+    rutina = obtener_rutina_propia(request, pk)
     # (Hito 4: aquí agregaremos el bloqueo si no eres el dueño)
     if request.method == "POST":                 # solo se borra al CONFIRMAR (POST)
         titulo = rutina.titulo
@@ -200,3 +208,17 @@ def eliminar_rutina(request, pk):
         "rutina": rutina,
         "total_inscripciones": rutina.inscripciones.count(),
     })
+
+@login_required
+def mis_rutinas(request):
+    rutinas = (
+        request.user.rutinas                       # solo las mías (related_name)
+        .select_related("disciplina")
+        .prefetch_related("equipamiento")
+        .annotate(
+            total_inscritos=Count("inscripciones"),
+            pendientes=Count("inscripciones", filter=Q(inscripciones__estado="pendiente")),
+        )
+        .order_by("-fecha_creacion", "-id")
+    )
+    return render(request, "rutinas/mis_rutinas.html", {"rutinas": rutinas})

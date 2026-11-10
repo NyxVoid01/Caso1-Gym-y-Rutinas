@@ -43,6 +43,7 @@
       </p>
       <p class="small text-muted mb-0">
         {{ rutina.get_nivel_display }} · {{ rutina.duracion_minutos }} min · {{ rutina.cupos }} cupos · por {{ rutina.entrenador.username }}
+      </p>
       <div class="mt-2">
         <a href="{% url 'detalle_rutina' rutina.pk %}" class="btn btn-sm btn-outline-dark">Ver</a>
         {% if user == rutina.entrenador %}
@@ -50,7 +51,6 @@
           <a href="{% url 'eliminar_rutina' rutina.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
         {% endif %}
       </div>
-      </p>
     </div></div>
   {% empty %}
     <div class="alert alert-info">No se encontraron rutinas con esos criterios.</div>
