@@ -1,0 +1,21 @@
+
+{% extends "base.html" %}
+{% block title %}{{ titulo_pagina }} · Gimnasio del Barrio{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center"><div class="col-md-8">
+    <div class="card shadow-sm"><div class="card-body">
+      <h1 class="h4 mb-3">{{ titulo_pagina }}</h1>
+      <form method="post" class="form-bonito" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-dark">Guardar</button>
+        {% if rutina %}
+          <a href="{% url 'detalle_rutina' rutina.pk %}" class="btn btn-link">Cancelar</a>
+        {% else %}
+          <a href="{% url 'lista_rutinas' %}" class="btn btn-link">Cancelar</a>
+        {% endif %}
+      </form>
+    </div></div>
+  </div></div>
+{% endblock %}

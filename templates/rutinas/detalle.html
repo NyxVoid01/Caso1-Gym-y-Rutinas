@@ -25,6 +25,9 @@
         {% endfor %}
       </li>
     </ul>
-    {# Aquí irán los botones Editar / Eliminar (Hito 3-4) e Inscribirme (Hito 5) #}
+    {% if user == rutina.entrenador %}
+      <a href="{% url 'editar_rutina' rutina.pk %}" class="btn btn-dark btn-sm">✏️ Editar</a>
+      <a href="{% url 'eliminar_rutina' rutina.pk %}" class="btn btn-outline-danger btn-sm">🗑️ Eliminar</a>
+    {% endif %}
   </div></div>
 {% endblock %}

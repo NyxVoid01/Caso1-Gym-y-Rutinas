@@ -4,6 +4,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path("rutinas/nueva/", views.crear_rutina, name="crear_rutina"),
+    path("rutinas/<int:pk>/editar/", views.editar_rutina, name="editar_rutina"),
+    path("rutinas/<int:pk>/eliminar/", views.eliminar_rutina, name="eliminar_rutina"),
     path("", views.portada, name="home"),
     path("rutinas/", views.lista_rutinas, name="lista_rutinas"),
     path("rutinas/<int:pk>/", views.detalle_rutina, name="detalle_rutina"),

@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import PerfilForm, RegistroForm
+from .forms import PerfilForm, RegistroForm, RutinaForm
 from .models import Disciplina, Inscripcion, Rutina
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordChangeView
@@ -150,3 +150,53 @@ class CambiarPasswordView(SuccessMessageMixin, PasswordChangeView):
     template_name = "cuentas/cambiar_password.html"
     success_url = reverse_lazy("cuenta")
     success_message = "Tu contraseña fue cambiada correctamente."
+
+# ---------- CRUD de rutinas ----------
+
+@login_required
+def crear_rutina(request):
+    if request.method == "POST":
+        form = RutinaForm(request.POST, entrenador=request.user)
+        if form.is_valid():
+            rutina = form.save(commit=False)     # 1) objeto en memoria, aún sin guardar
+            rutina.entrenador = request.user     # 2) el dueño lo pone el servidor, no el usuario
+            rutina.save()                        # 3) ahora sí se guarda en MySQL
+            messages.success(request, f"Rutina «{rutina.titulo}» publicada.")
+            return redirect("detalle_rutina", pk=rutina.pk)
+        messages.error(request, "No se pudo publicar la rutina. Revisa los errores.")
+    else:
+        form = RutinaForm(entrenador=request.user)
+    return render(request, "rutinas/form.html", {"form": form, "titulo_pagina": "Publicar rutina"})
+
+
+@login_required
+def editar_rutina(request, pk):
+    rutina = get_object_or_404(Rutina, pk=pk)
+    # (Hito 4: aquí agregaremos el bloqueo si no eres el dueño)
+    if request.method == "POST":
+        form = RutinaForm(request.POST, instance=rutina, entrenador=rutina.entrenador)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Cambios guardados.")
+            return redirect("detalle_rutina", pk=rutina.pk)
+        messages.error(request, "No se pudieron guardar los cambios. Revisa los errores.")
+    else:
+        form = RutinaForm(instance=rutina, entrenador=rutina.entrenador)   # precarga los datos
+    return render(request, "rutinas/form.html", {
+        "form": form, "rutina": rutina, "titulo_pagina": f"Editar «{rutina.titulo}»"})
+
+
+@login_required
+def eliminar_rutina(request, pk):
+    rutina = get_object_or_404(Rutina, pk=pk)
+    # (Hito 4: aquí agregaremos el bloqueo si no eres el dueño)
+    if request.method == "POST":                 # solo se borra al CONFIRMAR (POST)
+        titulo = rutina.titulo
+        rutina.delete()
+        messages.success(request, f"Rutina «{titulo}» eliminada.")
+        return redirect("lista_rutinas")
+    # GET: mostramos la pantalla de confirmación
+    return render(request, "rutinas/confirmar_eliminar.html", {
+        "rutina": rutina,
+        "total_inscripciones": rutina.inscripciones.count(),
+    })
