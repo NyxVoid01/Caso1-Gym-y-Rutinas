@@ -1,0 +1,39 @@
+
+{% extends "base.html" %}
+{% block title %}Mis inscripciones · Gimnasio del Barrio{% endblock %}
+
+{% block content %}
+  <h1 class="h3 mb-3">Mis inscripciones</h1>
+
+  {% if inscripciones %}
+    <div class="table-responsive">
+      <table class="table align-middle bg-white shadow-sm">
+        <thead class="table-dark">
+          <tr><th>Rutina</th><th>Entrenador</th><th>Disciplina</th><th>Fecha</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for i in inscripciones %}
+            <tr>
+              <td><a href="{% url 'detalle_rutina' i.rutina.pk %}">{{ i.rutina.titulo }}</a></td>
+              <td>{{ i.rutina.entrenador.username }}</td>
+              <td>{{ i.rutina.disciplina|default:"—" }}</td>
+              <td>{{ i.fecha|date:"d/m/Y H:i" }}</td>
+              <td><span class="badge bg-{{ i.color_estado }}">{{ i.get_estado_display }}</span></td>
+              <td>
+                {% if i.estado == "pendiente" %}
+                  <form method="post" action="{% url 'cancelar_inscripcion' i.pk %}">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-danger">Cancelar</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info">Aún no te has inscrito en ninguna rutina.
+      <a href="{% url 'lista_rutinas' %}">Explora las rutinas</a>.</div>
+  {% endif %}
+{% endblock %}

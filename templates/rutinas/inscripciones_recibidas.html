@@ -1,0 +1,50 @@
+
+{% extends "base.html" %}
+{% block title %}Inscripciones recibidas · Gimnasio del Barrio{% endblock %}
+
+{% block content %}
+  <h1 class="h3 mb-3">Inscripciones recibidas</h1>
+
+  <div class="mb-3">
+    <a href="{% url 'inscripciones_recibidas' %}"
+       class="btn btn-sm {% if not estado_actual %}btn-dark{% else %}btn-outline-dark{% endif %}">Todas</a>
+    {% for valor, nombre in estados %}
+      <a href="?estado={{ valor }}"
+         class="btn btn-sm {% if estado_actual == valor %}btn-dark{% else %}btn-outline-dark{% endif %}">{{ nombre }}</a>
+    {% endfor %}
+  </div>
+
+  {% if inscripciones %}
+    <div class="table-responsive">
+      <table class="table align-middle bg-white shadow-sm">
+        <thead class="table-dark">
+          <tr><th>Socio</th><th>Rutina</th><th>Comentario</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr>
+        </thead>
+        <tbody>
+          {% for i in inscripciones %}
+            <tr>
+              <td>{{ i.socio.username }}</td>
+              <td><a href="{% url 'detalle_rutina' i.rutina.pk %}">{{ i.rutina.titulo }}</a></td>
+              <td class="small">{{ i.comentario|default:"—" }}</td>
+              <td>{{ i.fecha|date:"d/m/Y H:i" }}</td>
+              <td><span class="badge bg-{{ i.color_estado }}">{{ i.get_estado_display }}</span></td>
+              <td class="text-nowrap">
+                {% if i.estado == "pendiente" %}
+                  <form method="post" action="{% url 'cambiar_estado_inscripcion' i.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button name="estado" value="confirmada" class="btn btn-sm btn-success">Confirmar</button>
+                    <button name="estado" value="rechazada" class="btn btn-sm btn-outline-danger">Rechazar</button>
+                  </form>
+                {% else %}
+                  <span class="text-muted small">Respondida</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info">No hay inscripciones{% if estado_actual %} con ese estado{% endif %}.</div>
+  {% endif %}
+{% endblock %}

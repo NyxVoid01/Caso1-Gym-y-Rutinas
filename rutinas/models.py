@@ -123,6 +123,15 @@ class Inscripcion(models.Model):
         # Regla del caso: un socio no puede inscribirse en una rutina propia.
         if self.rutina_id and self.socio_id and self.rutina.entrenador_id == self.socio_id:
             raise ValidationError("No puedes inscribirte en una rutina que tú publicaste.")
+    
+    @property
+    def color_estado(self):
+        """Clase de Bootstrap para pintar el estado en las plantillas."""
+        return {
+            "pendiente": "warning text-dark",
+            "confirmada": "success",
+            "rechazada": "danger",
+        }[self.estado]
 
     def __str__(self):
         return f"{self.socio} → {self.rutina} ({self.get_estado_display()})"

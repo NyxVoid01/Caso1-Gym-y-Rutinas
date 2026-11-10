@@ -7,13 +7,15 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import DisciplinaForm, PerfilForm, RegistroForm, RutinaForm
+from .forms import DisciplinaForm, InscripcionForm, PerfilForm, RegistroForm, RutinaForm
 from .models import Disciplina, Inscripcion, Rutina
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordChangeView
 from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count
+from django.db import IntegrityError
+from django.views.decorators.http import require_POST
 
 
 def portada(request):
@@ -78,10 +80,17 @@ def detalle_rutina(request, pk):
         pk=pk,
     )
     confirmadas = rutina.inscripciones.filter(estado=Inscripcion.Estado.CONFIRMADA).count()
+
+    mi_inscripcion = None
+    if request.user.is_authenticated:
+        mi_inscripcion = rutina.inscripciones.filter(socio=request.user).first()
+
     return render(request, "rutinas/detalle.html", {
         "rutina": rutina,
         "confirmadas": confirmadas,
         "cupos_disponibles": max(rutina.cupos - confirmadas, 0),
+        "mi_inscripcion": mi_inscripcion,
+        "form_inscripcion": InscripcionForm(),
     })
 
 # ---------- Cuentas ----------
@@ -263,3 +272,114 @@ def eliminar_disciplina(request, pk):
     return render(request, "rutinas/confirmar_eliminar_disciplina.html", {
         "disciplina": disciplina, "afectadas": afectadas,
     })
+
+# ---------- Inscripciones ----------
+
+@login_required
+@require_POST
+def inscribirse(request, pk):
+    rutina = get_object_or_404(Rutina, pk=pk)
+
+    # Regla 1: no en una rutina propia
+    if rutina.entrenador == request.user:
+        messages.error(request, "No puedes inscribirte en una rutina que tú publicaste.")
+        return redirect("detalle_rutina", pk=pk)
+
+    # Regla 2: no dos veces en la misma rutina
+    if Inscripcion.objects.filter(rutina=rutina, socio=request.user).exists():
+        messages.warning(request, "Ya tienes una inscripción en esta rutina.")
+        return redirect("detalle_rutina", pk=pk)
+
+    # Regla extra: no inscribirse si ya no quedan cupos
+    confirmadas = rutina.inscripciones.filter(estado=Inscripcion.Estado.CONFIRMADA).count()
+    if confirmadas >= rutina.cupos:
+        messages.error(request, "Esta rutina ya no tiene cupos disponibles.")
+        return redirect("detalle_rutina", pk=pk)
+
+    form = InscripcionForm(request.POST)
+    if form.is_valid():
+        inscripcion = form.save(commit=False)
+        inscripcion.rutina = rutina              # lo asigna el servidor
+        inscripcion.socio = request.user         # lo asigna el servidor
+        try:
+            inscripcion.save()
+        except IntegrityError:                   # respaldo: UniqueConstraint de la BD
+            messages.warning(request, "Ya tienes una inscripción en esta rutina.")
+        else:
+            messages.success(request, "¡Listo! Tu inscripción quedó pendiente de confirmación.")
+    else:
+        messages.error(request, form.errors["comentario"][0])
+    return redirect("detalle_rutina", pk=pk)
+
+
+@login_required
+def mis_inscripciones(request):
+    inscripciones = (
+        request.user.inscripciones
+        .select_related("rutina", "rutina__entrenador", "rutina__disciplina")
+        .order_by("-fecha")
+    )
+    return render(request, "rutinas/mis_inscripciones.html", {"inscripciones": inscripciones})
+
+
+@login_required
+@require_POST
+def cancelar_inscripcion(request, pk):
+    inscripcion = get_object_or_404(Inscripcion.objects.select_related("rutina"), pk=pk)
+    if inscripcion.socio != request.user:
+        raise PermissionDenied("Solo quien hizo la inscripción puede cancelarla.")
+    if inscripcion.estado != Inscripcion.Estado.PENDIENTE:
+        messages.error(request, "Solo puedes cancelar inscripciones que siguen pendientes.")
+    else:
+        titulo = inscripcion.rutina.titulo
+        inscripcion.delete()
+        messages.success(request, f"Cancelaste tu inscripción en «{titulo}».")
+    return redirect("mis_inscripciones")
+
+
+@login_required
+def inscripciones_recibidas(request):
+    estado = request.GET.get("estado", "")
+    inscripciones = (
+        Inscripcion.objects
+        .filter(rutina__entrenador=request.user)  # solo las de MIS rutinas
+        .select_related("socio", "rutina")
+        .order_by("-fecha")
+    )
+    if estado in Inscripcion.Estado.values:
+        inscripciones = inscripciones.filter(estado=estado)
+    return render(request, "rutinas/inscripciones_recibidas.html", {
+        "inscripciones": inscripciones,
+        "estado_actual": estado,
+        "estados": Inscripcion.Estado.choices,
+    })
+
+
+@login_required
+@require_POST
+def cambiar_estado_inscripcion(request, pk):
+    inscripcion = get_object_or_404(
+        Inscripcion.objects.select_related("rutina", "socio"), pk=pk
+    )
+    if inscripcion.rutina.entrenador != request.user:
+        raise PermissionDenied("Solo el entrenador de la rutina puede responder esta inscripción.")
+
+    nuevo = request.POST.get("estado")
+    rutina = inscripcion.rutina
+
+    if nuevo not in (Inscripcion.Estado.CONFIRMADA, Inscripcion.Estado.RECHAZADA):
+        messages.error(request, "Estado no válido.")
+    elif inscripcion.estado != Inscripcion.Estado.PENDIENTE:
+        messages.error(request, "Esta inscripción ya fue respondida.")
+    elif (nuevo == Inscripcion.Estado.CONFIRMADA and
+          rutina.inscripciones.filter(estado=Inscripcion.Estado.CONFIRMADA).count() >= rutina.cupos):
+        messages.error(request, "No quedan cupos en esta rutina para confirmar más socios.")
+    else:
+        inscripcion.estado = nuevo
+        inscripcion.save(update_fields=["estado"])
+        messages.success(
+            request,
+            f"Inscripción de {inscripcion.socio.username} en «{rutina.titulo}»: "
+            f"{inscripcion.get_estado_display().lower()}.",
+        )
+    return redirect("inscripciones_recibidas")

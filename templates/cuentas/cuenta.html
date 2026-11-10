@@ -26,7 +26,8 @@
         <ul class="list-unstyled mb-0">
           <li>🏋️ Rutinas publicadas: <strong>{{ total_rutinas }}</strong></li>
           <li>📝 Inscripciones realizadas: <strong>{{ total_inscripciones }}</strong></li>
-          <li>📥 Inscripciones pendientes por responder: <strong>{{ pendientes_recibidas }}</strong></li>
+          <li>📥 Inscripciones pendientes por responder:
+            <a href="{% url 'inscripciones_recibidas' %}?estado=pendiente"><strong>{{ pendientes_recibidas }}</strong></a></li>
         </ul>
       </div></div>
     </div>

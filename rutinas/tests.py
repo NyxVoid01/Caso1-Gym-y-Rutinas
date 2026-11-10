@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Equipamiento, Rutina
+from .models import Equipamiento, Inscripcion, Rutina
 
 
 class PropiedadRutinaTests(TestCase):
@@ -60,3 +60,53 @@ class EquipamientoFormTests(TestCase):
         r = self.client.post(reverse("crear_rutina"), self.datos(self.equipos))   # 6
         self.assertEqual(r.status_code, 200)                   # vuelve al formulario con error
         self.assertFalse(Rutina.objects.filter(titulo="Rutina con equipos").exists())
+
+class InscripcionTests(TestCase):
+    def setUp(self):
+        self.ana = User.objects.create_user("ana_t", password="Clave12345!")
+        self.carla = User.objects.create_user("carla_t", password="Clave12345!")
+        self.bruno = User.objects.create_user("bruno_t", password="Clave12345!")
+        self.rutina = Rutina.objects.create(
+            titulo="Rutina de Ana", descripcion="d",
+            duracion_minutos=30, cupos=5, entrenador=self.ana,
+        )
+
+    def entrar(self, username):
+        self.client.login(username=username, password="Clave12345!")
+
+    def test_socio_no_se_inscribe_dos_veces(self):
+        self.entrar("carla_t")
+        url = reverse("inscribirse", args=[self.rutina.pk])
+        self.client.post(url, {"comentario": "hola"})
+        self.client.post(url, {"comentario": "otra vez"})
+        self.assertEqual(Inscripcion.objects.filter(rutina=self.rutina, socio=self.carla).count(), 1)
+
+    def test_no_puede_inscribirse_en_rutina_propia(self):
+        self.entrar("ana_t")
+        self.client.post(reverse("inscribirse", args=[self.rutina.pk]), {"comentario": ""})
+        self.assertFalse(Inscripcion.objects.filter(rutina=self.rutina, socio=self.ana).exists())
+
+    def test_ajeno_no_puede_cambiar_estado(self):
+        i = Inscripcion.objects.create(rutina=self.rutina, socio=self.carla)
+        self.entrar("bruno_t")
+        r = self.client.post(reverse("cambiar_estado_inscripcion", args=[i.pk]), {"estado": "confirmada"})
+        self.assertEqual(r.status_code, 403)
+        i.refresh_from_db()
+        self.assertEqual(i.estado, "pendiente")
+
+    def test_dueno_confirma_inscripcion(self):
+        i = Inscripcion.objects.create(rutina=self.rutina, socio=self.carla)
+        self.entrar("ana_t")
+        self.client.post(reverse("cambiar_estado_inscripcion", args=[i.pk]), {"estado": "confirmada"})
+        i.refresh_from_db()
+        self.assertEqual(i.estado, "confirmada")
+
+    def test_socio_cancela_solo_pendientes(self):
+        pendiente = Inscripcion.objects.create(rutina=self.rutina, socio=self.carla)
+        self.entrar("carla_t")
+        self.client.post(reverse("cancelar_inscripcion", args=[pendiente.pk]))
+        self.assertFalse(Inscripcion.objects.filter(pk=pendiente.pk).exists())
+
+        confirmada = Inscripcion.objects.create(rutina=self.rutina, socio=self.carla, estado="confirmada")
+        self.client.post(reverse("cancelar_inscripcion", args=[confirmada.pk]))
+        self.assertTrue(Inscripcion.objects.filter(pk=confirmada.pk).exists())

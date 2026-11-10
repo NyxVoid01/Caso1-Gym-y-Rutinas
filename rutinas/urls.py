@@ -19,4 +19,9 @@ urlpatterns = [
     path("mis-rutinas/", views.mis_rutinas, name="mis_rutinas"),
     path("disciplinas/", views.disciplinas, name="disciplinas"),
     path("disciplinas/<int:pk>/eliminar/", views.eliminar_disciplina, name="eliminar_disciplina"),
+    path("rutinas/<int:pk>/inscribirme/", views.inscribirse, name="inscribirse"),
+    path("mis-inscripciones/", views.mis_inscripciones, name="mis_inscripciones"),
+    path("inscripciones/<int:pk>/cancelar/", views.cancelar_inscripcion, name="cancelar_inscripcion"),
+    path("inscripciones-recibidas/", views.inscripciones_recibidas, name="inscripciones_recibidas"),
+    path("inscripciones/<int:pk>/estado/", views.cambiar_estado_inscripcion, name="cambiar_estado_inscripcion"),
 ]

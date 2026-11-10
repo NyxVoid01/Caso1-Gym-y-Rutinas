@@ -1,5 +1,5 @@
 
-from .models import Disciplina, Rutina
+from .models import Disciplina, Inscripcion, Rutina
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
@@ -119,3 +119,17 @@ class DisciplinaForm(forms.ModelForm):
         if Disciplina.objects.filter(nombre__iexact=nombre).exists():
             raise forms.ValidationError("Esa disciplina ya existe.")
         return nombre
+
+class InscripcionForm(forms.ModelForm):
+    class Meta:
+        model = Inscripcion
+        fields = ["comentario"]                  # rutina, socio y estado los pone el servidor
+        labels = {"comentario": "Comentario para el entrenador (opcional)"}
+        widgets = {"comentario": forms.Textarea(attrs={
+            "rows": 2, "placeholder": "Ej: vengo de una lesión de rodilla..."})}
+
+    def clean_comentario(self):
+        comentario = self.cleaned_data["comentario"].strip()
+        if len(comentario) > 300:
+            raise forms.ValidationError("El comentario puede tener máximo 300 caracteres.")
+        return comentario
